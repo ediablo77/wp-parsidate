@@ -3,7 +3,7 @@ I've moved project to GitHub for better team working.
 
 ## Description
 WP-Parsidate is a package for WordPress CMS system and adds full support for Persian language.
-If you're looking for production plugin, never use this plugin, download plugin from [WordPress official page](wordpress.org/plugins/wp-parsidate/)
+If you're looking for production plugin, never use this plugin, download plugin from [WordPress official page](http://wordpress.org/plugins/wp-parsidate/)
 
 ## Contribute
 Read this carefully!

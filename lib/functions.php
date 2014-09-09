@@ -1,5 +1,12 @@
 <?php
 
+/**
+ * php_date_default_timezone_set()
+ * convert timezone
+ * 
+ * @param mixed $GMT
+ * @return string
+ */
 function php_date_default_timezone_set($GMT) 
 { 
     $timezones = array( 
@@ -36,32 +43,73 @@ function php_date_default_timezone_set($GMT)
     return  $timezones[$GMT];
 }
 
+/**
+ * per_number()
+ * convert english number to persian number 
+ * 
+ * @param mixed $number
+ * @return string
+ */
 function per_number($number) 
 {
     return str_replace(range(0,9),array('۰','۱','۲','۳','۴','۵','۶','۷','۸','۹'),$number);
 }
 
+/**
+ * eng_number()
+ * convert persian number to english number
+ * 
+ * @param mixed $number
+ * @return string
+ */
 function eng_number($number) 
 {
     return str_replace(array('۰','۱','۲','۳','۴','۵','۶','۷','۸','۹'),range(0,9),$number);
 }
 
+/**
+ * persian_number()
+ * convert array of english number to persian number
+ * 
+ * @param mixed $content
+ * @return string
+ */
 function persian_number($content) 
 {
     return(isset($content[1])?str_replace(range(0,9),array('۰','۱','۲','۳','۴','۵','۶','۷','۸','۹'),$content[1]):$content[0]);
 }
 
+/**
+ * fixnumber()
+ * replace english number to persian number in string
+ * 
+ * @param mixed $content
+ * @return string
+ */
 function fixnumber($content) 
 {
 	return preg_replace_callback( '/(?:&#\d{2,4};)|(?:[0]?[a-z][\x20-\x3B=\x3F-\x7F]*)|(\d+[\.\d]*)|<\s*[^>]+>/i','persian_number',$content);
 }
 
+/**
+ * fixarabic()
+ * convert arabic character to persian character
+ * 
+ * @param mixed $content
+ * @return string
+ */
 function fixarabic($content)
 {
     //return str_replace(array('ي','ك','٤','٥','٦','ة','ئ'),array('ی','ک','۴','۵','۶','ه','ی'),$content);
     return str_replace(array('ي','ك','٤','٥','٦','ة'),array('ی','ک','۴','۵','۶','ه'),$content);
 }
 
+/**
+ * detect_rss()
+ * detect arr page in wordpress
+ * 
+ * @return boolean
+ */
 function detect_rss()
 {
     if(is_feed())

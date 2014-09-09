@@ -4,5 +4,5 @@ body{
 }
 #tinymce{
     font-family: tahoma;
-    font-size:12px;
+    direction: rtl;
 }

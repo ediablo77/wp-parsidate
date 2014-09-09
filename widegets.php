@@ -65,11 +65,46 @@ class parsidate_archive extends WP_Widget
         echo $after_widget;
     }
 }
+//**********************************************************************************************************************************************
+class parsidate_calendar extends WP_Widget
+{
+    public function __construct()
+    {
+       parent::WP_Widget(false,'گاهشمار تاریخ خورشیدی','description=گاهشمار تاریخ خورشیدی');
+    }
+    
+    public function form($instance)
+    {
+        ?>
+        <p style="text-align:right; direction:rtl">
+        <label>عنوان:</label> 
+        <input style="width: 200px;" id="<?php echo $this->get_field_id('parsidate_calendar_title'); ?>" name="<?php echo $this->get_field_name('parsidate_calendar_title'); ?>" type="text" value="<?php echo (empty($instance['parsidate_calendar_title'])?'گاه شمار تاریخ خورشیدی':$instance['parsidate_calendar_title']) ?>" />
+        </p>
+        <?php
+    }
+    
+    public function update($new_instance, $old_instance )
+    {
+        $instance=$old_instance;
+        $instance['parsidate_calendar_title'] = strip_tags($new_instance['parsidate_calendar_title']);
+        return $instance;
+    }       
 
+    public function widget($args ,$instance)
+    {
+        extract($args);
+        $title      = (empty($instance['parsidate_calendar_title']))?'':$instance['parsidate_calendar_title'];
+        echo "$before_widget\n$before_title $title $after_title";
+        wp_get_pcalendar();
+        echo $after_widget;
+    }    
+}
+//**********************************************************************************************************************************************
 add_action( 'widgets_init', 'register_wpb_widgets' );
 
 function register_wpb_widgets()
 {
     register_widget('parsidate_archive');
+    register_widget('parsidate_calendar');
 }
 ?>

@@ -2,7 +2,7 @@
 
 /*
 Plugin Name: WP-Parsidate
-Version: 1.3.4
+Version: 1.0.0
 Author: Mobin Ghasempoor
 Author URI: http://wp-parsi.com/
 Plugin URI: http://forum.wp-parsi.com/
@@ -11,7 +11,7 @@ Description: Persian package builder for WordPress, Full RTL and Shamsi(Jalali) 
 
 /* 
 Special thanks to :
- 	Wordpress Parsi admins and moderators (Parsa Kafi, Mohsen Ghiasi, Saeed Fard, Abdolmajed Shahbakhsh, Morteza Rocky and Mostafa Soufi, Seyed Vahid Rezaei)
+ 	Wordpress Parsi admins and moderators (Parsa Kafi, Mohsen Ghiasi, Saeed Fard, Abdolmajed Shahbakhsh, Morteza Rocky and Mostafa Soufi)
  	Wordpress Parsi forum members for great support(forum.wp-parsi.com)
 */
 
@@ -96,7 +96,6 @@ function new_locale()
 * admin config page
 */
 add_action('admin_menu', 'add_persiandate_menu');
-
 function add_persiandate_menu()
 {
     add_menu_page('تنظیمات پارسی', 'تنظیمات پارسی', 'add_users', 'parsi_plugin_page','parsi_plugin_page', '');
@@ -107,21 +106,20 @@ function add_persiandate_menu()
 */
 add_action( 'admin_print_styles-plugin-editor.php', 'theme_editor_add_init', 11 );
 add_action( 'admin_print_styles-theme-editor.php', 'theme_editor_add_init', 11 );
-function theme_editor_add_init(){
-    wp_enqueue_style("functions", plugins_url(basename(wp_parsipath)."/css/admin.css"), false, "1.0", "all");
+function theme_editor_add_init()
+{
+    wp_enqueue_style('functions', plugins_url(basename(wp_parsipath).'/css/admin.css'), false, '1.0', 'all');
 }
-	
 	
 /*
 * fix tiny mce rtl
 */
-add_filter('init', 'wpb_mce_set_font',1000);
-
-function wpb_mce_set_font($input)
+add_filter('tiny_mce_before_init', 'wpb_mce_set_direction',1000);
+function wpb_mce_set_direction($input)
 {
-    add_editor_style( plugins_url(basename(wp_parsipath).'/css/editor.css') );
+    $input['content_css']=plugins_url(basename(wp_parsipath).'/css/editor.css');
+    return $input;
 }
-
 
 /*
 * hooks and filters for persian date
@@ -133,7 +131,7 @@ if($val['sep_fixdate']=='بلی')
     {
         add_filter('the_time', 'add_ptime',1001,2);
         add_filter('the_date', 'add_pdate',1001,2);
-        add_action('date_i18n', 'add_pi18n',1001,3);//revision
+        //add_action('date_i18n', 'add_pi18n',1001,3);//revision
         add_filter('get_comment_time', 'add_ctime',1001,2);
         add_filter('get_comment_date', 'add_cdate',1001,2);
     }
@@ -241,7 +239,7 @@ function wp_pdtitle($title, $sep,$seplocation)
 */
 if ($val['sep_fixurl']=='بلی')
 {
-    add_filter("post_link","get_pdpermalink",10,3);
+    add_filter('post_link','get_pdpermalink',10,3);
     add_action( 'pre_get_posts','wppd_pre_get_posts');
     add_filter( 'posts_where' , 'wppd_posts_where');
 }
@@ -264,7 +262,7 @@ function get_pdpermalink($perma, $post,$leavename = false)
         if($leavename)
         $rewritecode=array_diff($rewritecode,array('%postname%','%pagename%'));
         
-        $date= explode(" ",parsidate('Y m d H i s',$post->post_date,'eng'));
+        $date= explode(' ',parsidate('Y m d H i s',$post->post_date,'eng'));
         $out=array();
         foreach($rewritecode as $rewrite)
         {
@@ -488,21 +486,21 @@ function wppd_posts_where($where)
    $where  .= " AND {$prefixp}post_date >= '$stadate' AND {$prefixp}post_date < '$enddate' ";
    return $where; 
 }
+
 /*
 * fix admin edit section
 */
 add_action('admin_footer','parsidate_js',1);
-
 function parsidate_js()
 {
     $dirname=basename(dirname(__file__));
     echo "<script type='text/javascript' src='".plugins_url()."/$dirname/js/parsidate.js'></script>";
 }
+
 /*
 * fix search dropdownlist admin edit.php
 */
 add_action('load-edit.php', 'wppd_admin_init');
-
 function wppd_admin_init()
 {
     add_action('restrict_manage_posts','wppd_restrict_manage_posts');
@@ -532,7 +530,7 @@ function wppd_restrict_manage_posts()
 	$m = isset( $_GET['mfa'] ) ? (int) $_GET['mfa'] : 0;
 
 	echo '<select name="mfa">';
-	echo "<option ".selected( $m, 0 ,false)." value='0'>".__( 'دیدن همه تاریخ ها' )."</option>\n";
+	echo "<option ".selected( $m, 0 ,false)." value='0'>".__( 'Show all dates','wp-persian' )."</option>\n";
 	foreach ( $list as $date )
     {
 		$date  = parsidate('Ym',$date,'eng');
@@ -546,6 +544,212 @@ function wppd_restrict_manage_posts()
 	echo '</select>';
 }
 //___________________________________________________persian archives _______________________________________________
+
+    function wp_get_pcalendar($args='')
+    {
+        global $wpdb, $m, $monthnum, $year, $timedifference, $month, $day,  $posts;
+        if(!empty($m)){
+            $m  = preg_replace("/[^0-9]/","",$m);
+            $jy = substr($m,0,4);
+        }elseif(!empty($year))
+        $jy = $year;
+        if($jy>1500)
+        get_calendar();
+        else
+        {
+            $pd = bn_parsidate::getInstance();
+            if ( !$posts )
+            {
+                $gotsome = $wpdb->get_var("SELECT 1 as test FROM $wpdb->posts WHERE post_type = 'post' AND post_status = 'publish' LIMIT 1");
+                if ( !$gotsome )
+                return;
+		    }
+            $week_begins = intval(get_option('start_of_week'));
+            $w           = isset($_GET['w'])?intval($_GET['w']):'';
+            $is_gregorian= false;
+	        if ( !empty($monthnum) && !empty($year) )
+            {
+		      $thismonth = ''.zeroise(intval($monthnum), 2);
+		      $thisyear  = ''.intval($year);
+	        } elseif ( !empty($w) )
+            {
+		      $thisyear = ''.intval(substr($m, 0, 4));
+		      $d = (($w - 1) * 7) + 6; //it seems MySQL's weeks disagree with PHP's
+		      $thismonth = $wpdb->get_var("SELECT DATE_FORMAT((DATE_ADD('{$thisyear}0101', INTERVAL $d DAY) ), '%m')");
+	        } elseif ( !empty($m) )
+            {
+		      $thisyear = ''.intval(substr($m, 0, 4));
+		      if ( strlen($m) < 6 )
+				$thismonth = '01';
+		      else
+				$thismonth = ''.zeroise(intval(substr($m, 4, 2)), 2);
+	        } else
+            {
+                $is_gregorian = true;
+		        $thisyear  = gmdate('Y', current_time('timestamp')+get_option('gmt_offset') * 3600);
+		        $thismonth = gmdate('m', current_time('timestamp')+get_option('gmt_offset') * 3600);
+                $thisday   = gmdate('d', current_time('timestamp')+get_option('gmt_offset') * 3600);
+	        }
+
+	        if ($is_gregorian)
+            {
+		        list($jthisyear,$jthismonth,$jthisday) = $pd->gregorian_to_persian($thisyear,$thismonth,$thisday);
+		        $unixmonth = $pd->gregurian_date('Y-m-d 00:00:00',"$jthisyear-$jthismonth-01");
+	        } else
+            {
+		        $unixmonth  = mktime(0, 0 , 0, $thismonth, 1, $thisyear);
+		        $jthisyear  = $thisyear;
+                $jthismonth = $thismonth;
+            }
+        }
+
+	   $jnextmonth = $jthismonth + 1;
+	   $jnextyear  = $jthisyear;
+	   if ($jnextmonth > 12)
+       {
+		  $jnextmonth = 1;
+		  $jnextyear++;
+	   }
+
+       $start = $pd->gregurian_date('Y-m-d 00:00:00',"$jthisyear-$jthismonth-01");
+       $end   = $pd->gregurian_date('Y-m-d 00:00:00',"$jnextyear-$jnextmonth-01");
+       $previous = $wpdb->get_row("SELECT MONTH(post_date) AS month, YEAR(post_date) AS year
+	                FROM $wpdb->posts
+	                WHERE post_date < '$start'
+	                AND post_type = 'post' AND post_status = 'publish'
+                    ORDER BY post_date DESC
+                    LIMIT 1");
+       $next = $wpdb->get_row("SELECT MONTH(post_date) AS month, YEAR(post_date) AS year
+	                FROM $wpdb->posts
+	                WHERE post_date >= '$end'
+	                AND post_type = 'post' AND post_status = 'publish'
+                    ORDER BY post_date ASC
+                    LIMIT 1");
+                            
+	   $calendar_output .= '<table id="wp-calendar" style="direction: rtl">
+        <caption>' . $pd->persian_month_names[(int)$jthismonth ] . ' ' . $pd->persian_date('Y', $unixmonth) . '</caption>
+        <thead>
+        <tr>';
+       $myweek = array();
+       for ( $wdcount=0; $wdcount<=6; $wdcount++ )
+       {$myweek[] = $pd->persian_day_small[($wdcount+$week_begins)%7];}
+       
+       foreach ( $myweek as $wd )
+       {$calendar_output .= "\n\t\t<th scope=\"col\" title=\"$wd\">$wd</th>";}
+	
+        $calendar_output .= '
+        </tr>
+        </thead>
+	
+        <tfoot>
+	    <tr>';
+        
+        if($previous)
+        {
+		     $previous_month = $jthismonth - 1;
+		     $previous_year = $jthisyear;
+		     if ($previous_month == 0)
+            {
+			 $previous_month = 12;
+			 $previous_year --;
+		    }
+            $calendar_output .= "\n\t\t".'<td colspan="3" id="prev"><a href="'.get_month_link($previous_year, $previous_month).
+            '">&laquo; ' . $pd->persian_month_names[$previous_month] . '</a></td>';
+        }else
+        $calendar_output .= "\n\t\t".'<td colspan="3" id="prev" class="pad">&nbsp;</td>';
+        $calendar_output .= "\n\t\t".'<td class="pad">&nbsp;</td>';
+        if($next)
+        {
+		  $next_month = $jthismonth + 1;
+		  $next_year = $jthisyear;
+		  if ($next_month == 13)
+          {
+			$next_month = 1;
+			$next_year ++;
+		  }
+		$calendar_output .= "\n\t\t".'<td colspan="3" id="next"><a href="'.get_month_link($next_year, $next_month).
+        '">' . $pd->persian_month_names[$next_month]. ' &raquo;</a></td>';
+        }else
+        $calendar_output .= "\n\t\t".'<td colspan="3" id="next" class="pad">&nbsp;</td>';
+        
+        $calendar_output .= '
+        </tr>
+        </tfoot>
+	
+        <tbody>
+        <tr>';
+//____________________________________________________________________________________________________________________________________        
+       	$dayswithposts = $wpdb->get_results("SELECT DISTINCT DAYOFMONTH(post_date),MONTH(post_date),YEAR(post_date)
+        FROM $wpdb->posts 
+       	WHERE post_date > '$start' AND post_date < '$end'
+        AND post_status = 'publish'", ARRAY_N);
+        if ( $dayswithposts )
+        {
+            foreach ($dayswithposts as $daywith )
+            {$daywithpost[] = $pd->persian_date('j',"$daywith[2]-$daywith[1]-$daywith[0]",'eng');}
+        } else
+        $daywithpost = array();
+        if (strpos($_SERVER['HTTP_USER_AGENT'], 'MSIE') !== false || stripos($_SERVER['HTTP_USER_AGENT'], 'camino') !== false || stripos($_SERVER['HTTP_USER_AGENT'], 'safari') !== false)
+        $ak_title_separator = "\n";
+        else
+        $ak_title_separator = ', ';
+	
+        $ak_titles_for_day = array();
+	    $ak_post_titles = $wpdb->get_results("SELECT ID, post_title, DAYOFMONTH(post_date) as dom, MONTH(post_date) as month, YEAR(post_date) as year 
+        FROM $wpdb->posts WHERE post_date >= '$start' 
+        AND post_date <= '$end' 
+        AND post_type = 'post' AND post_status = 'publish'", ARRAY_N);
+        
+        
+        if ( $ak_post_titles )
+        {
+            foreach ($ak_post_titles as $ak_post_title )
+            {/** This filter is documented in wp-includes/post-template.php */
+                $post_title = esc_attr( apply_filters( 'the_title', $ak_post_title->post_title, $ak_post_title->ID ));
+	            $ak_post_title[2] = $pd->persian_date('j',"$ak_post_title[4]-$ak_post_title[3]-$ak_post_title[2]",'eng');
+                
+                if ( empty($ak_titles_for_day['day_'.$ak_post_title->dom]) )
+                    $ak_titles_for_day['day_'.$ak_post_title->dom] = '';
+                if ( empty($ak_titles_for_day[$ak_post_title->dom]) ) // first one
+	                $ak_titles_for_day[$ak_post_title->dom] = $post_title;
+                else
+	                $ak_titles_for_day[$ak_post_title->dom] .= $ak_title_separator . $post_title;
+            }
+        }
+       	$pad = calendar_week_mod(date('w',strtotime($unixmonth))-$week_begins);
+	    if (0 != $pad)
+        $calendar_output .= "\n\t\t".'<td colspan="'.$pad.'" class="pad">&nbsp;</td>';
+        $daysinmonth      = intval($pd->persian_date('t', $unixmonth,'eng'));
+        for ($day = 1; $day <= $daysinmonth; ++$day)
+        {
+		  list($thiyear,$thismonth,$thisday) = $pd->persian_to_gregorian($jthisyear,$jthismonth,$day);
+		  if (isset($newrow) && $newrow)
+		  $calendar_output .= "\n\t</tr>\n\t<tr>\n\t\t";
+		  $newrow = false;
+        
+		  if ($thisday == gmdate('j', (time() + (get_option('gmt_offset') * 3600))) && $thismonth == gmdate('m', time()+(get_option('gmt_offset') * 3600)) && $thisyear == gmdate('Y', time()+(get_option('gmt_offset') * 3600)))
+            $calendar_output .= '<td id="today">';
+            else
+            $calendar_output .= '<td>';
+			
+		  $p_day =(empty($val['sep_datesnum'])?$day:per_number($day));
+				
+		  if (in_array($day, $daywithpost)) // any posts today?
+		  $calendar_output .= '<a href="' . get_day_link($jthisyear, $jthismonth, $day) . "\" title=\"$ak_titles_for_day[$day]\">$p_day</a>";
+		  else
+		  $calendar_output .= $p_day;
+		  $calendar_output .= '</td>';
+
+		  if (6 == calendar_week_mod($pd->gregurian_date('w',"$jthisyear-$jthismonth-$day")-$week_begins))
+		  $newrow = true;
+	   }
+	$pad = 7 - calendar_week_mod($pd->gregurian_date('w',"$jthisyear-$jthismonth-$day",'eng')-$week_begins);
+	if ($pad != 0 && $pad != 7)
+	$calendar_output .= "\n\t\t".'<td class="pad" colspan="'.$pad.'">&nbsp;</td>';
+    
+	echo $calendar_output ."\n\t</tr>\n\t</tbody>\n\t</table>";
+    }
+//******************************************************************************************************************************************************    
     function wp_get_parchives($args='')
     {
         global $wpdb, $wp_locale,$persian_month_names;
